@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ data.name }} | Session View</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #111;
+      color: #eee;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    aside {
+      width: 240px;
+      background: linear-gradient(to bottom, #1f1f1f, #151515);
+      padding: 20px;
+      overflow-y: auto;
+      border-right: 1px solid #2a2a2a;
+      box-shadow: inset -1px 0 0 #000;
+      transition: background 0.3s;
+    }
+
+    aside h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #ccc;
+      margin-bottom: 16px;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 6px;
+    }
+
+    aside ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    aside li {
+      margin-bottom: 10px;
+      color: #7a7a7a;
+    }
+
+    aside a {
+      display: block;
+      color: #bdbdbd;
+      background: #1f1f1f;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    aside a:hover {
+      background: #00bcd4;
+      color: #111;
+      text-decoration: none;
+    }
+
+    aside::-webkit-scrollbar {
+      width: 2px;
+    }
+
+    aside::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 3px;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .transcript {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 60px;
+    }
+
+    .transcript h3 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    .segment {
+      margin-bottom: 15px;
+    }
+
+    .segment-range {
+      display: block;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .word {
+      display: inline-block;
+      margin-right: 4px;
+      padding: 2px 4px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .word:hover {
+      background: #0af;
+      color: #000;
+    }
+
+    .word.active {
+      background: #ffde59;
+      color: #000;
+    }
+
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 240px;
+      right: 0;
+      background: #000;
+      padding: 10px 20px;
+      border-top: 1px solid #333;
+      z-index: 999;
+    }
+
+    audio {
+      width: 100%;
+      outline: none;
+    }
+
+    @media (max-width: 768px) {
+      aside {
+        display: none;
+      }
+
+      footer {
+        left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside>
+    <h2>Sessions</h2>
+    <li><a href="/" style="color: #0af;">+ Transcribe New</a></li>
+    <ul id="session-list">
+      <!-- Filled via JavaScript -->
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main>
+    <h1>{{ data.name }}</h1>
+    <div class="transcript" id="transcript">
+      <h3>Transcript:</h3>
+      {% for seg in data.segments %}
+        <div class="segment">
+          <span class="segment-range">[{{ seg.start|round(2) }}s - {{ seg.end|round(2) }}s]</span>
+          {% for word in seg.words %}
+            <span 
+              class="word" 
+              data-start="{{ word.start }}" 
+              data-end="{{ word.end }}"
+              title="{{ word.word }}">
+              {{ word.word }}
+            </span>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  </main>
+
+  <!-- Audio Player at Bottom -->
+  <footer>
+    <audio id="player" controls>
+      <source src="{{ data.audio_url }}" type="audio/mpeg">
+      Your browser does not support audio playback.
+    </audio>
+  </footer>
+
+  <!-- JS Logic -->
+  <script>
+    const player = document.getElementById("player");
+    const words = document.querySelectorAll(".word");
+
+    let activeWord = null;
+
+    player.ontimeupdate = () => {
+      const time = player.currentTime;
+      let newActive = null;
+
+      words.forEach(word => {
+        const start = parseFloat(word.dataset.start);
+        const end = parseFloat(word.dataset.end);
+        const isActive = time >= start && time <= end;
+        word.classList.toggle("active", isActive);
+        if (isActive && !newActive) {
+          newActive = word;
+        }
+      });
+
+      if (newActive && newActive !== activeWord) {
+        newActive.scrollIntoView({ behavior: "smooth", block: "center" });
+        activeWord = newActive;
+      }
+    };
+
+    // Clicking a word jumps to it
+    words.forEach(word => {
+      word.addEventListener("click", () => {
+        const startTime = parseFloat(word.dataset.start);
+        player.currentTime = startTime;
+        player.play();
+      });
+    });
+
+    // Populate session list
+    fetch("/api/sessions")
+      .then(res => res.json())
+      .then(data => {
+        const list = document.getElementById("session-list");
+        data.forEach(session => {
+          const li = document.createElement("li");
+          li.innerHTML = `<a href="/session/${session.session_id}">${session.name}</a>`;
+          list.appendChild(li);
+        });
+      });
+  </script>
+</body>
+</html>

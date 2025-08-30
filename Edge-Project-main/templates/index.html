@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Upload & Transcribe</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #111;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .upload-section {
+      background: #222;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      margin-bottom: 40px;
+      box-shadow: 0 0 10px #000;
+    }
+
+    .upload-section h1 {
+      margin-bottom: 20px;
+      font-size: 28px;
+    }
+
+    select, input[type="file"], button {
+      margin: 8px;
+      padding: 8px;
+      background: #333;
+      border: none;
+      color: white;
+      border-radius: 5px;
+    }
+
+    button {
+      cursor: pointer;
+      background-color: #444;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+
+    .session-list h2 {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    .session-list ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .session-list li {
+      background: #1c1c1c;
+      margin-bottom: 10px;
+      padding: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .session-list li:hover {
+      background: #333;
+    }
+
+    .session-list a {
+      color: #00aaff;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="upload-section">
+      <h1>Upload & Transcribe</h1>
+      <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="audio" required><br><br>
+
+        <label>Model:</label>
+        <select name="model_size">
+          <option value="base" selected>base</option>
+          <option value="medium" >medium</option>
+        </select>
+
+        <label>Device:</label>
+        <select name="device">
+          <option value="cpu" selected>CPU</option>
+          <option value="cuda">GPU</option>
+        </select>
+
+        <label>Compute:</label>
+        <select name="compute_type">
+          <option value="float32" >float32</option>
+          <option value="int8" selected>int8</option>
+        </select>
+
+        <br><br>
+        <button type="submit">Transcribe</button>
+      </form>
+    </div>
+
+    <div class="session-list">
+      <h2>Past Sessions</h2>
+      <ul id="session-list"></ul>
+    </div>
+  </div>
+
+  <script>
+    fetch('/api/sessions')
+      .then(res => res.json())
+      .then(data => {
+        const list = document.getElementById('session-list');
+        data.forEach(session => {
+          const li = document.createElement('li');
+          li.innerHTML = `<a href="/session/${session.session_id}" target="_blank">${session.name}</a>`;
+          list.appendChild(li);
+        });
+      })
+      .catch(err => {
+        console.error("Error loading sessions:", err);
+      });
+  </script>
+</body>
+</html>
